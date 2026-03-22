@@ -1,24 +1,8 @@
-<style>
-  .nurbgen-text {
-    font-family: 'Arial', sans-serif;
-    font-weight: 300;
-    font-size: 6rem;
-    background: linear-gradient(
-      90deg,
-      #a78bfa, #60a5fa, #34d399,
-      #fbbf24, #f87171, #c084fc,
-      #60a5fa, #34d399
-    );
-    background-size: 300% 100%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-</style>
 
 <div align="center">
 
-<span class="nurbgen-text">NURBGen</span>
+<img src="assets/logo.png" alt="NURBGen Logo" width="500"/>
+
 ### High-Fidelity Text-to-CAD Generation through LLM-Driven NURBS Modeling
 
 [![AAAI 2026](https://img.shields.io/badge/AAAI-2026-blue?style=flat-square)](https://ojs.aaai.org/index.php/AAAI/article/view/37922)
