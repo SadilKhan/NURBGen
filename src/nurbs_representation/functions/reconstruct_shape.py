@@ -31,7 +31,6 @@ from OCC.Core.TopoDS import TopoDS_Compound
 from OCC.Core.BRep import BRep_Builder
 from OCC.Core.TopExp import TopExp_Explorer
 from OCC.Core.ShapeFix import ShapeFix_Wire
-from OCCUtils.handler import GeomHandler
 
 # New Imports
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeFace
@@ -402,9 +401,6 @@ def build_face_from_loops(loop_data, index=0):
 
                 edges.append(edge)
             
-            handler = GeomHandler()
-            for i, edge in enumerate(edges):
-                handler.save_point_cloud_from_edge(edge, f"edge/edge_{index}_{i}.ply", n_points=8192)
 
             wire=create_closed_wire(edges, index=index)
             
@@ -430,20 +426,12 @@ def build_face_from_loops(loop_data, index=0):
             logger.error("No outer wire found in loop data.")
             raise ValueError("No outer wire found")
 
-        #face_builder = BRepBuilderAPI_MakeFace(outer_wire, True)
-        # print("DEKH YE ", outer_wire.Closed())
+    
         face_builder=build_face_safely_from_wire(outer_wire)
 
         for inner_wire in inner_wires:
             face_builder.Add(inner_wire)
         
-        
-        # # import uuid
-        # # myuuid = uuid.uuid4()
-        # # myuuidStr = str(myuuid)
-        # handler.save_point_cloud_from_wire(outer_wire, f"wire/outer_wire_{index}.ply", n_points=8192)
-        # # handler.save_point_cloud_from_face(face_builder.Face(), f"face/outer_wire_{myuuidStr}.ply", n_points=8192)
-
         return face_builder.Face()
     except IndexError:  
         logger.error("Error: Index out of range while processing loop data.")

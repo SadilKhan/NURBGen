@@ -62,6 +62,13 @@ pip install flash_attn-2.8.0.post2+cu12torch2.7cxx11abiTRUE-cp311-cp311-linux_x8
 > Pre-built wheels for other CUDA/PyTorch combinations are available at [flash-attention releases](https://github.com/Dao-AILab/flash-attention/releases).
 > To build from source instead: `pip install flash-attn --no-build-isolation`
  
+ ### 3. Install OCCUtils
+
+ ```bash
+git clone https://github.com/tpaviot/pythonocc-utils
+cd pythonocc-utils
+pip install -e .
+ ```
 
 ### Inference (Text-to-CAD Generation) (CLI)
 
@@ -83,13 +90,17 @@ pip install flash_attn-2.8.0.post2+cu12torch2.7cxx11abiTRUE-cp311-cp311-linux_x8
 ```bash
 
 # For single prompt, use the --prompt flag:
-python -n src.infer_nurbgen --prompt "Socket head cap screw with a large countersunk washer. Features a hexagonal socket drive and a cylindrical threaded shank. Dimensions: length 92.96 mm, width 79.38 mm, height 43.66 mm. Ensure smooth curvature at transitions." --output_dir ./results
+python -m src.infer_nurbgen --prompt "Socket head cap screw with a large countersunk washer. Features a hexagonal socket drive and a cylindrical threaded shank. Dimensions: length 92.96 mm, width 79.38 mm, height 43.66 mm. Ensure smooth curvature at transitions." --output_dir ./results
 
 # For batch processing with file outputs, create a text file (e.g., prompts.txt) with one prompt per line:
-python -n src.infer_nurbgen --input prompts.txt --output_dir ./results
+python -m src.infer_nurbgen --input prompts.txt --output_dir ./results
 
 # For json input [{"uid", "caption"},{"uid", "caption"}], create a jsonl file (e.g., prompts.jsonl):
-python -n src.infer_nurbgen --input prompts.jsonl --output_dir ./results
+python -m src.infer_nurbgen --input prompts.jsonl --output_dir ./results
+
+# Step 2: Generate STEP files from the output json files:
+python -m src.nurbs_representation.export --input_dir ./results --output_dir ./step_files
+
 ```
 
 ### Python API — ms-swift
@@ -132,6 +143,19 @@ with torch.no_grad():
     outputs = model.generate(**inputs, max_new_tokens=8192, do_sample=False)
 
 print(tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True))
+```
+
+
+## Training and Data Preparation
+
+### Data Preparation
+
+```bash
+# For single STEP file:
+python extract.py --step_file part.step --output_json out.json
+
+# For batch processing with directory of STEP files:
+python extract.py --input_dir step_files/ --output_dir json_outputs/ --num_workers 4
 ```
 
 ## Citation
