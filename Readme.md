@@ -1,6 +1,24 @@
+<style>
+  .nurbgen-text {
+    font-family: 'Arial', sans-serif;
+    font-weight: 300;
+    font-size: 6rem;
+    background: linear-gradient(
+      90deg,
+      #a78bfa, #60a5fa, #34d399,
+      #fbbf24, #f87171, #c084fc,
+      #60a5fa, #34d399
+    );
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+</style>
+
 <div align="center">
 
-# NURBGen
+<span class="nurbgen-text">NURBGen</span>
 ### High-Fidelity Text-to-CAD Generation through LLM-Driven NURBS Modeling
 
 [![AAAI 2026](https://img.shields.io/badge/AAAI-2026-blue?style=flat-square)](https://ojs.aaai.org/index.php/AAAI/article/view/37922)
@@ -26,24 +44,18 @@ producing editable, parametric CAD models convertible to STEP format.**
 
 ---
 
-## Tasks
-
-[ ] Training Scripts
-
-[ ] Evaluation Scripts
-
-[ ] PartABC Dataset
-
-[x] Pre-trained Model Weights
-
-[x]  Inference Scripts
-
-[x] Reconstruction Scripts
-
+## Release Status
+ 
+| | Component |
+|---|---|
+| ✅ | Pre-trained Model Weights |
+| ✅ | Inference Scripts |
+| ✅ | Reconstruction Scripts |
+| ⬜ | Training Scripts |
+| ⬜ | Data Preparation Scripts |
+| ⬜ | PartABC Dataset |
+ 
 ---
-
-
-
 
 ## How to Use
 
