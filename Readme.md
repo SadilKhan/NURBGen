@@ -26,43 +26,63 @@ producing editable, parametric CAD models convertible to STEP format.**
 
 ---
 
-## Overview
+## Tasks
 
-NURBGen is the **first LLM-based framework** for generating industry-standard NURBS (Non-Uniform Rational B-Spline) representations directly from natural language. Unlike mesh- or voxel-based approaches, NURBGen produces fully parametric, editable CAD models exportable to STEP format, the standard for engineering workflows.
+[ ] Training Scripts
 
-- 🏆 **64.1% human preference** over all baselines (5 CAD designers, 1k samples)
-- 📐 **Lowest invalidity ratio** of 0.018 — valid BRep structures
-- 🗃️ **partABC dataset** — 300k part-level CAD models with NURBS annotations and auto-generated captions (~85% accuracy)
-- 🔀 **Hybrid representation** combining untrimmed NURBS with analytic primitives for geometric robustness
+[ ] Evaluation Scripts
 
----
+[ ] PartABC Dataset
 
-## The partABC Dataset
+[x] Pre-trained Model Weights
 
-[![Dataset](https://img.shields.io/badge/🤗%20HuggingFace-PartABC-orange?style=flat-square)](https://huggingface.co/datasets/SadilKhan/PartABC)
+[x]  Inference Scripts
 
-Derived from the ABC dataset (1M CAD models), partABC decomposes assembly-level designs into individual part-level components using PythonOCC, generating 3M instances. A complexity-aware filtering strategy retains **300k geometrically diverse parts**.
-
-| Property | Value |
-|---|---|
-| Total parts | 300,000 |
-| Caption accuracy | ~85% |
-| Complexity tiers | Simple (10%) / Moderate (50%) / Complex (40%) |
-| Captioning model | InternVL3-13B |
-| Render setup | 4 orthographic views at 512×512 via Blender + Freestyle edges |
-
+[x] Reconstruction Scripts
 
 ---
+
+
+
 
 ## How to Use
 
-### Installation
+### 1. Create the environment
 
 ```bash
-pip install ms-swift transformers peft torch
+conda env create -f environment.yaml
+conda activate nurbgen
 ```
 
-### Single Prompt (CLI)
+### 2. Install Flash Attention
+ 
+Flash Attention must be installed from the pre-built wheel **after** the environment is created, as it is tied to your specific CUDA and PyTorch versions:
+ 
+```bash
+# https://github.com/Dao-AILab/flash-attention/releases/tag/v2.8.0.post2
+pip install flash_attn-2.8.0.post2+cu12torch2.7cxx11abiTRUE-cp311-cp311-linux_x86_64.whl
+```
+ 
+> Pre-built wheels for other CUDA/PyTorch combinations are available at [flash-attention releases](https://github.com/Dao-AILab/flash-attention/releases).
+> To build from source instead: `pip install flash-attn --no-build-isolation`
+ 
+
+### Inference (Text-to-CAD Generation) (CLI)
+
+
+ **CLI Reference**
+
+| Flag | Default | Description |
+|---|---|---|
+| `--prompt` / `-p` | — | Inline single prompt string |
+| `--input` / `-i` | — | Path to `.txt`, `.json`, or `.jsonl` |
+| `--output_dir` / `-o` | `./nurbgen_outputs` | Directory for output `.txt` files |
+| `--batch_size` | `4` | Prompts per inference batch |
+| `--max_new_tokens` | `8192` | Maximum tokens to generate |
+| `--temperature` | `0.3` | `0` = greedy decoding |
+| `--save_summary` | off | Also write `results_summary.json` |
+
+---
 
 ```bash
 
@@ -118,30 +138,19 @@ with torch.no_grad():
 print(tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True))
 ```
 
-### CLI Reference
-
-| Flag | Default | Description |
-|---|---|---|
-| `--prompt` / `-p` | — | Inline single prompt string |
-| `--input` / `-i` | — | Path to `.txt`, `.json`, or `.jsonl` |
-| `--output_dir` / `-o` | `./nurbgen_outputs` | Directory for output `.txt` files |
-| `--batch_size` | `4` | Prompts per inference batch |
-| `--max_new_tokens` | `8192` | Maximum tokens to generate |
-| `--temperature` | `0.3` | `0` = greedy decoding |
-| `--save_summary` | off | Also write `results_summary.json` |
-
----
-
 ## Citation
 
 If you find NURBGen useful in your research, please cite:
 
 ```bibtex
-@inproceedings{usama2025nurbgen,
-  title     = {NURBGen: High-Fidelity Text-to-CAD Generation through LLM-Driven NURBS Modeling},
-  author    = {Usama, Muhammad and Khan, Mohammad Sadil and Stricker, Didier and Afzal, Muhammad Zeshan},
-  booktitle = {AAAI},
-  year      = {2026}
+@inproceedings{usama2026nurbgen,
+  title={NURBGen: High-Fidelity Text-to-CAD Generation through LLM-Driven NURBS Modeling},
+  author={Usama, Muhammad and Khan, Mohammad Sadil and Stricker, Didier and Afzal, Muhammad Zeshan},
+  booktitle={Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume={40},
+  number={12},
+  pages={9603--9611},
+  year={2026}
 }
 ```
 
