@@ -17,6 +17,7 @@ import json
 import os
 import re
 import time
+import multiprocessing as mp
 from pathlib import Path
 from typing import Any
 
@@ -103,7 +104,7 @@ def run_inference(
     Run inference on a list of {uid, caption} dicts.
     Returns list of {uid, caption, response} dicts.
     """
-    engine = get_engine(max_new_tokens=max_new_tokens, temperature=temperature)
+    engine = get_engine(max_new_tokens=max_new_tokens)
 
     request_config = RequestConfig(
         max_tokens=max_new_tokens,
@@ -139,6 +140,93 @@ def run_inference(
             results.append({"uid": uid, "caption": item["caption"], "response": text})
 
     return results
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Multi-GPU data-parallel inference
+# ─────────────────────────────────────────────────────────────────────────────
+def _gpu_worker(gpu_id, items, output_dir, batch_size, max_new_tokens,
+                temperature, result_queue):
+    """Subprocess: loads model on one GPU and processes its shard of items."""
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+
+    from swift.llm import PtEngine, RequestConfig, InferRequest as _InferReq
+
+    print(f"[GPU {gpu_id}] Loading model …")
+    engine = PtEngine(
+        BASE_MODEL,
+        adapters=[LORA_ADAPTER],
+        use_hf=True,
+        max_model_len=max_new_tokens,
+    )
+    print(f"[GPU {gpu_id}] Engine ready.")
+
+    req_cfg = RequestConfig(max_tokens=max_new_tokens, temperature=temperature)
+    out_path = Path(output_dir)
+    results = []
+    total = len(items)
+
+    for batch_start in range(0, total, batch_size):
+        batch = items[batch_start : batch_start + batch_size]
+        requests = [
+            _InferReq(messages=[
+                {"role": "user", "content": DEFAULT_TEXT + it["caption"]}
+            ])
+            for it in batch
+        ]
+
+        print(
+            f"[GPU {gpu_id}] Batch {batch_start // batch_size + 1} "
+            f"({batch_start + 1}–{min(batch_start + batch_size, total)}/{total})"
+        )
+        t0 = time.time()
+        responses = engine.infer(requests, request_config=req_cfg)
+        print(f"[GPU {gpu_id}] Done in {time.time() - t0:.1f}s")
+
+        for item, resp in zip(batch, responses):
+            text = resp.choices[0].message.content
+            uid = item.get("uid") or caption_to_uid(item["caption"])
+            save_result(uid, item["caption"], text, out_path)
+            results.append({"uid": uid, "caption": item["caption"], "response": text})
+
+    result_queue.put(results)
+
+
+def run_inference_multi_gpu(
+    items: list[dict],
+    output_dir: Path,
+    num_gpus: int,
+    batch_size: int = 4,
+    max_new_tokens: int = 8192,
+    temperature: float = 0.3,
+) -> list[dict]:
+    """Shard items round-robin across GPUs and run in parallel subprocesses."""
+    shards = [[] for _ in range(num_gpus)]
+    for i, item in enumerate(items):
+        shards[i % num_gpus].append(item)
+
+    ctx = mp.get_context("spawn")
+    result_queue = ctx.Queue()
+    processes = []
+
+    for gpu_id in range(num_gpus):
+        if not shards[gpu_id]:
+            continue
+        p = ctx.Process(
+            target=_gpu_worker,
+            args=(gpu_id, shards[gpu_id], str(output_dir), batch_size,
+                  max_new_tokens, temperature, result_queue),
+        )
+        processes.append(p)
+        p.start()
+
+    all_results = []
+    for _ in processes:
+        all_results.extend(result_queue.get())
+    for p in processes:
+        p.join()
+
+    return all_results
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -231,12 +319,19 @@ def parse_args():
         help="Sampling temperature; 0 = greedy (default: 0.3).",
     )
 
-    # Batch
+    # Batch / parallelism
     parser.add_argument(
         "--batch_size",
         type=int,
         default=4,
         help="Number of prompts to process in one engine call (default: 4).",
+    )
+    parser.add_argument(
+        "--num_gpus",
+        type=int,
+        default=1,
+        help="Number of GPUs for data-parallel inference. "
+             "Each GPU loads its own model copy and processes a shard of prompts (default: 1).",
     )
 
     # Optional: save a consolidated JSON summary
@@ -280,13 +375,24 @@ def main():
     print(f"[NURBGen] Output dir : {output_dir.resolve()}\n")
 
     # ── Run ───────────────────────────────────────────────────────────────────
-    results = run_inference(
-        items,
-        output_dir      = output_dir,
-        batch_size      = args.batch_size,
-        max_new_tokens  = args.max_new_tokens,
-        temperature     = args.temperature,
-    )
+    if args.num_gpus > 1:
+        print(f"[NURBGen] Data-parallel mode: {args.num_gpus} GPUs\n")
+        results = run_inference_multi_gpu(
+            items,
+            output_dir      = output_dir,
+            num_gpus        = args.num_gpus,
+            batch_size      = args.batch_size,
+            max_new_tokens  = args.max_new_tokens,
+            temperature     = args.temperature,
+        )
+    else:
+        results = run_inference(
+            items,
+            output_dir      = output_dir,
+            batch_size      = args.batch_size,
+            max_new_tokens  = args.max_new_tokens,
+            temperature     = args.temperature,
+        )
 
     # ── Optional summary ──────────────────────────────────────────────────────
     if args.save_summary:
