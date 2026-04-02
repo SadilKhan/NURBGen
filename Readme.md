@@ -98,8 +98,9 @@ python -m src.infer_nurbgen --input prompts.txt --output_dir ./results
 # For json input [{"uid", "caption"},{"uid", "caption"}], create a jsonl file (e.g., prompts.jsonl):
 python -m src.infer_nurbgen --input prompts.jsonl --output_dir ./results
 
-# Step 2: Generate STEP files from the output json files:
-python -m src.nurbs_representation.export --input_dir ./results --output_dir ./step_files
+# Step 2: Convert generated JSON to STEP/STL files:
+cd src/nurbs_representation
+python export.py --input_dir ../../results --output_dir ../../step_files
 
 ```
 

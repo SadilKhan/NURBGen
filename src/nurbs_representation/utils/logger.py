@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 from colorama import Fore, Style, init
 
@@ -107,8 +108,9 @@ def setup_logger(name="MyLogger", log_file="app.log", level=logging.DEBUG):
     if logger.hasHandlers():
         logger.handlers.clear()
 
-    log_folder = "/netscratch/usama/code/nurbs/NurbsRepresentation/output/debug/logs/"
-    log_file = log_folder + log_file
+    log_folder = os.path.join(os.getcwd(), "logs")
+    os.makedirs(log_folder, exist_ok=True)
+    log_file = os.path.join(log_folder, log_file)
 
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(level)
