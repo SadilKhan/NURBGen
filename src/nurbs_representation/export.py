@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import argparse
 from model.Bspline import BsplineParameters
@@ -10,6 +11,21 @@ from functions.reconstruct_shape import (
 )
 from functions.normalize import decompressedJson
 from glob import glob
+
+
+def extract_nurbs_json(raw_data):
+    """
+    Accept either raw NURBS JSON (from extract_json.py) or the inference
+    wrapper format {"uid", "caption", "response"} (from infer_nurbgen.py).
+    Returns the parsed NURBS dict with face_* keys.
+    """
+    if isinstance(raw_data, dict) and "response" in raw_data:
+        text = raw_data["response"]
+        text = re.sub(r"^```(?:json)?\s*", "", text.strip())
+        text = re.sub(r"\s*```$", "", text.strip())
+        return json.loads(text)
+    return raw_data
+
 
 def reconstruct_surfaces(extracted_params):
     return [reconstructBSplineSurface(params) for params in extracted_params]
@@ -43,7 +59,6 @@ def extract_bspline_and_geometrical_params(extracted_params_json):
     extract_geometrical_params = []
     index_for_geometrical_params = []
     
-    # Fix for 'list' object has no attribute 'keys'
     if isinstance(extracted_params_json, list):
         iterable = enumerate(extracted_params_json)
     else:
@@ -69,14 +84,14 @@ def reconstruct_from_json(json_path, input_folder, output_dir, logger):
     output_step = os.path.join(output_dir, output_step)
     os.makedirs(output_dir, exist_ok=True, mode=0o777)
 
-    extracted_params_json = load_json(json_path)
+    raw_data = load_json(json_path)
+    extracted_params_json = extract_nurbs_json(raw_data)
     extracted_params_json = decompressedJson(extracted_params_json)
 
     extract_bspline_params, extract_geometrical_params, indexes = extract_bspline_and_geometrical_params(extracted_params_json)
     reconstructed_faces = reconstruct_surfaces(extract_bspline_params)
     geometric_faces = build_geometric_faces(extract_geometrical_params, logger)
 
-    # combine reconstructed and geometric faces
     faces = []
     for i in range(len(reconstructed_faces) + len(geometric_faces)):
         if i in indexes:
@@ -90,7 +105,7 @@ def reconstruct_from_json(json_path, input_folder, output_dir, logger):
 
 def main(args):
     logger = setup_logger()
-    input_folder = args.json_folder
+    input_folder = args.input_dir
 
     json_paths = glob(os.path.join(input_folder, "**", "*.json"), recursive=True)
 
@@ -99,28 +114,27 @@ def main(args):
         return
 
     for json_path in json_paths:
-        # --- SKIP LOGIC ---
         filename = os.path.splitext(os.path.basename(json_path))[0]
-        output_dir = os.path.dirname(json_path)
-        output_stl = os.path.join(output_dir, f"{filename}.stl")
-        output_step = os.path.join(output_dir, f"{filename}.step")
-        
+        out_dir = args.output_dir or os.path.dirname(json_path)
+        output_stl = os.path.join(out_dir, f"{filename}.stl")
+
         if os.path.exists(output_stl):
             logger.info(f"Skipping (already exists): {json_path}")
             continue
-        # ------------------
 
         logger.info(f"Processing file: {json_path}")
         try:
-            reconstruct_from_json(json_path, input_folder, output_dir, logger)
+            reconstruct_from_json(json_path, input_folder, out_dir, logger)
         except Exception as e:
             logger.error(f"Failed to process {json_path}: {e}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Batch reconstruct NURBS surfaces from JSON files.")
-    parser.add_argument('--json_folder', type=str, required=True, help='Folder path containing JSON parameter files.')
-    parser.add_argument('--output_dir', type=str, default="./output", help='Directory to save STL and STEP outputs.')
+    parser.add_argument('--input_dir', type=str, required=True,
+                        help='Folder containing JSON files (from inference or extraction).')
+    parser.add_argument('--output_dir', type=str, default=None,
+                        help='Directory to save STEP/STL outputs (default: same as input).')
     args = parser.parse_args()
 
     main(args)
