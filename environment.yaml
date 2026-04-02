@@ -1,8 +1,6 @@
 name: nurbgen
 
 channels:
-  - pytorch
-  - nvidia
   - conda-forge
   - defaults
 
@@ -10,19 +8,19 @@ dependencies:
   # ── Python ────────────────────────────────────────────────────────────────
   - python=3.11
 
-  # ── PyTorch (CUDA 12.6) ───────────────────────────────────────────────────
-  # Matches the nvidia-*-cu12 packages pinned below
-  - pytorch=2.7.1
-  - torchvision=0.22.1
-  - pytorch-cuda=12.6
-
   # ── pip ───────────────────────────────────────────────────────────────────
   - pip
   - pip:
+      # ── PyTorch (CUDA 12.6) ───────────────────────────────────────────
+      # Installed via pip wheels — conda pytorch-cuda metapackage doesn't
+      # ship 12.6.  The extra index carries the cu126-tagged builds.
+      - --extra-index-url https://download.pytorch.org/whl/cu126
+      - torch==2.7.1
+      - torchvision==0.22.1
+      - torchaudio==2.7.1
 
       # ── LLM / Fine-tuning core ─────────────────────────────────────────
-      - ms-swift==3.5.0.dev0        # install as editable from your local path:
-                                    #   pip install -e /path/to/ms-swift
+      - ms-swift==3.5.0
       - transformers==4.52.3
       - peft==0.15.2
       - accelerate==1.9.0
@@ -139,7 +137,7 @@ dependencies:
       - simplejson==3.20.1
       - oss2==2.19.1
       - aliyun-python-sdk-core==2.16.0
-      - aliyun-python-sdk-kms==2.16.7
+      - aliyun-python-sdk-kms==2.16.5
       - crcmod==1.7
       - pycryptodome==3.23.0
 
