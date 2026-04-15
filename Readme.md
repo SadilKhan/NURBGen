@@ -104,7 +104,7 @@ python export.py --input_dir ../../results --output_dir ../../step_files
 
 ```
 
-### Python API — ms-swift
+### Python API — ms-swift (3.x)
 
 ```python
 from swift.llm import PtEngine, RequestConfig, InferRequest
@@ -113,14 +113,71 @@ engine = PtEngine(
     "Qwen/Qwen3-4B",
     adapters=["SadilKhan/NURBGen"],
     use_hf=True,
+    torch_dtype="bfloat16",
+    device_map="auto",
+    attn_impl="flash_attn_2",
+    use_cache=True,
 )
 
 response = engine.infer(
-    [InferRequest(messages=[{"role": "user", "content": "Generate NURBS for the following: Design a rectangular plate with dimensions 330.20 mm x 233.40 mm x 6.00 mm. Include two square through-holes near each end."}])],
-    request_config=RequestConfig(max_tokens=8192, temperature=0.3),
+    [InferRequest(messages=[{
+        "role": "user",
+        "content": "Generate NURBS for the following: Design a rectangular plate with dimensions 330.20 mm x 233.40 mm x 6.00 mm. Include two square through-holes near each end."
+    }])],
+    request_config=RequestConfig(
+        max_tokens=8192,
+        temperature=0.3,
+    ),
 )
+
 print(response[0].choices[0].message.content)
 ```
+
+
+### Python API — ms-swift (4.x)
+
+>> You need to install vllm to use the VllmEngine, which is much faster and more memory efficient than the PtEngine for long generations. See [ms-swift docs](https://swift.readthedocs.io/en/latest/engines/vllm.html) for installation instructions.
+pip install vllm==0.11.0
+
+```python
+import torch
+from swift.infer_engine import VllmEngine
+from swift.llm import InferRequest, RequestConfig
+
+engine = VllmEngine(
+    "Qwen/Qwen3-4B",
+    adapters=["SadilKhan/NURBGen"],   # one LoRA adapter
+    use_hf=True,
+    torch_dtype=torch.bfloat16,
+    max_model_len=8192,               # set only as large as you need
+    gpu_memory_utilization=0.9,
+    max_num_seqs=8,                   # useful if you batch multiple requests
+    max_lora_rank=64,                 # increase if your LoRA rank is >16
+)
+
+requests = [
+    InferRequest(
+        messages=[{
+            "role": "user",
+            "content": (
+                "Generate NURBS for the following: "
+                "Design a rectangular plate with dimensions "
+                "330.20 mm x 233.40 mm x 6.00 mm. "
+                "Include two square through-holes near each end."
+            )
+        }]
+    )
+]
+
+config = RequestConfig(
+    max_tokens=8192,      # much faster than 8192 unless you truly need that length
+    temperature=0.3,     # greedy decode = faster
+)
+
+responses = engine.infer(requests, config)
+print(responses[0].choices[0].message.content)
+```
+
 
 ### Python API — HuggingFace / PEFT
 

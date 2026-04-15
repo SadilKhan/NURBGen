@@ -53,7 +53,11 @@ def get_engine(max_new_tokens: int = 8192):
             BASE_MODEL,
             adapters=[LORA_ADAPTER],
             use_hf=True,          # pull from Hugging Face
-            max_model_len=max_new_tokens
+            max_model_len=max_new_tokens,
+            torch_dtype="bfloat16",
+            device_map="auto",
+            attn_impl="flash_attn_2",
+            use_cache=True,
         )
         print("[NURBGen] Engine ready.\n")
     return _engine
