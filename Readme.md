@@ -70,6 +70,21 @@ cd pythonocc-utils
 pip install -e .
  ```
 
+ ### 4. (Optional) For Evaluation
+
+ ```bash
+# Install kaolin (https://kaolin.readthedocs.io/en/latest/notes/installation.html)
+pip install kaolin==0.18.0 -f https://nvidia-kaolin.s3.us-east-2.amazonaws.com/torch-{TORCH_VER}_cu{CUDA_VER}.html
+
+# Structural Losses (PointFlow implementation)
+git clone https://github.com/stevenygd/PointFlow/tree/master/metrics/pytorch_structural_losses
+cd pytorch_structural_losses
+pip install -e .
+
+# Point cloud utilities (for evaluation metrics like Hausdorff Distance)
+pip install point-cloud-utils
+ ```
+
 ### Inference (Text-to-CAD Generation) (CLI)
 
 
@@ -214,6 +229,22 @@ python extract.py --step_file part.step --output_json out.json
 
 # For batch processing with directory of STEP files:
 python extract.py --input_dir step_files/ --output_dir json_outputs/ --num_workers 4
+```
+
+### Training
+
+Download the training jsonl 
+
+```bash
+
+```
+
+
+### Evaluation
+
+```bash
+cd src/evaluation
+python eval.py --pred_step_dir pred_steps/ --gt_step_dir gt_steps/ --output_dir eval_results/
 ```
 
 ## Citation
