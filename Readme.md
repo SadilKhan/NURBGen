@@ -24,6 +24,9 @@ producing editable, parametric CAD models convertible to STEP format.**
 
 <sup>\* Equally contributing first authors &nbsp;·&nbsp; † Corresponding author</sup>
 
+<img src="https://readme-typing-svg.herokuapp.com?font=JetBrains+Mono&size=36&pause=1000&center=true&vCenter=true&width=1000&height=75&color=0C7C59&lines=AAAI+2026" />
+
+
 </div>
 
 ---
